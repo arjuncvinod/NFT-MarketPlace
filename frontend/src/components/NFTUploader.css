@@ -1,0 +1,80 @@
+/* Center the form and give it a card-like appearance */
+.form-container {
+    max-width: 400px;
+    margin: 50px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  /* Heading */
+  .form-container h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  /* Style input wrappers for icons */
+  .input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #f8f8f8;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .input-wrapper input,
+  .input-wrapper textarea {
+    border: none;
+    background: transparent;
+    width: 100%;
+    font-size: 16px;
+    padding-left: 10px;
+    outline: none;
+  }
+  
+  /* Icons */
+  .icon {
+    color: #007bff;
+    font-size: 24px;
+  }
+  
+  /* File Upload Styling */
+  .input-wrapper input[type="file"] {
+    display: none;
+  }
+  
+  .input-wrapper span {
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+  }
+  
+  /* Style the submit button */
+  .form-container button {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  /* Button hover effect */
+  .form-container button:hover {
+    background: #0056b3;
+  }
+  
+  /* Disable button style */
+  .form-container button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+  }
+  
