@@ -1,0 +1,9 @@
+const tokenURI = await marketplace.tokenURI(0);
+const NFTMarketplace = await ethers.getContractFacconst marketplace = await NFTMarketplace.attach("0x1b809e432cF15A4B25d1B7EFCF323417e6784776");
+console.log(tokenURI);
+const marketplace = await const tokenURI = await marketplace.tokenURI(0); // Assuming token ID is 0
+const NFTMarketplace = await ethers.getContractFactory("NFTMarketplace");
+console.log(await marketplace.getAddrenpx hardhat run scripts/mint.js --network localhost
+const marketplace = await ethers.getContractAt("NFTMarketplace", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512");
+consconsole.log("Balance:", (await deployer.getBalance()).toString());
+const [deployer] = await ethers.getSigners();
