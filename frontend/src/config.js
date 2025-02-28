@@ -1,5 +1,5 @@
-export const CONTRACT_ADDRESS = "0xeCfE567f12170D2985Ff97dD166Aa2e9029b34ae"; // Replace with your deployed contract address
-export const CONTRACT_ABI =[
+export const CONTRACT_ADDRESS = "0x704eBEC58E4D1B80C3D33Bb0deF49e2749831201"; // Replace with your deployed contract address
+export const CONTRACT_ABI = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -60,6 +60,25 @@ export const CONTRACT_ABI =[
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "NFTListed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "owner",
         "type": "address"
@@ -102,6 +121,37 @@ export const CONTRACT_ABI =[
       }
     ],
     "name": "NFTMinted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "buyer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "NFTSold",
     "type": "event"
   },
   {
@@ -193,6 +243,19 @@ export const CONTRACT_ABI =[
         "type": "uint256"
       }
     ],
+    "name": "buyNFT",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "name": "getApproved",
     "outputs": [
       {
@@ -205,51 +268,13 @@ export const CONTRACT_ABI =[
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getNFTDetails",
+    "inputs": [],
+    "name": "getTotalMintedNFTs",
     "outputs": [
       {
-        "components": [
-          {
-            "internalType": "uint256",
-            "name": "tokenId",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "title",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "category",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "owner",
-            "type": "address"
-          }
-        ],
-        "internalType": "struct NFTMarketplace.NFT",
+        "internalType": "uint256",
         "name": "",
-        "type": "tuple"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -277,6 +302,24 @@ export const CONTRACT_ABI =[
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "listNFTForSale",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -364,6 +407,11 @@ export const CONTRACT_ABI =[
         "internalType": "address",
         "name": "owner",
         "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "isForSale",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -523,19 +571,6 @@ export const CONTRACT_ABI =[
         "internalType": "string",
         "name": "",
         "type": "string"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "totalSupply",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",

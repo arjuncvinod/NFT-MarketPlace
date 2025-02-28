@@ -10,12 +10,14 @@ import {
   Typography,
   Grid,
   CircularProgress,
+  TextField,
 } from "@mui/material";
 
 const NFTGallery = () => {
   const [nfts, setNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
+  const [userAddress, setUserAddress] = useState("");
 
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -28,9 +30,10 @@ const NFTGallery = () => {
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
+        setUserAddress(await signer.getAddress());
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-        const totalMinted = await contract.totalSupply();
+        const totalMinted = await contract.getTotalMintedNFTs();
         if (totalMinted.toString() === "0") {
           setNfts([]);
           setLoading(false);
@@ -50,25 +53,19 @@ const NFTGallery = () => {
 
             const metadata = await response.json();
             const owner = await contract.ownerOf(i);
+            const nftDetails = await contract.nftDetails(i);
 
-            // ✅ Extract Price with proper conversion
-            const priceAttribute = metadata.attributes.find((attr) => attr.trait_type === "Price");
-            const priceInEth = priceAttribute
-              ? ethers.formatEther(ethers.parseUnits(priceAttribute.value, "ether"))
-              : "0";
-
-            // ✅ Extract Category
-            const categoryAttribute = metadata.attributes.find((attr) => attr.trait_type === "Category");
-            const category = categoryAttribute ? categoryAttribute.value : "Unknown";
+            const priceInEth = ethers.formatEther(nftDetails.price.toString());
 
             nftList.push({
               id: i,
               name: metadata.name,
               description: metadata.description,
               image: metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/"),
-              category,
+              category: metadata.attributes.find(attr => attr.trait_type === "Category")?.value || "Unknown",
               price: priceInEth,
               owner,
+              isForSale: nftDetails.isForSale,
             });
           } catch (err) {
             console.warn(`Skipping tokenId ${i} due to error:`, err);
@@ -91,9 +88,47 @@ const NFTGallery = () => {
     setRefresh(!refresh);
   };
 
+  const buyNFT = async (tokenId, price) => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      const transaction = await contract.buyNFT(tokenId, { value: ethers.parseEther(price) });
+      await transaction.wait();
+
+      alert(`Successfully purchased NFT ${tokenId}!`);
+      setRefresh(!refresh);
+    } catch (error) {
+      console.error("Error purchasing NFT:", error);
+    }
+  };
+
+  const listNFTForSale = async (tokenId, price) => {
+    try {
+      if (price <= 0) {
+        alert("Price must be greater than 0.");
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      const transaction = await contract.listNFTForSale(tokenId, ethers.parseEther(price));
+      await transaction.wait();
+
+      alert(`NFT ${tokenId} is now listed for sale at ${price} ETH!`);
+      setRefresh(!refresh);
+    } catch (error) {
+      console.error("Error listing NFT for sale:", error);
+    }
+  };
+
   return (
     <div style={{ maxWidth: "1200px", margin: "auto", padding: "20px" }}>
-      {/* Refresh Button */}
       <Button
         variant="contained"
         color="primary"
@@ -104,7 +139,6 @@ const NFTGallery = () => {
         Refresh NFTs
       </Button>
 
-      {/* Loading State */}
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
           <CircularProgress />
@@ -113,50 +147,49 @@ const NFTGallery = () => {
         <Grid container spacing={3}>
           {nfts.map((nft) => (
             <Grid item key={nft.id} xs={12} sm={6} md={4} lg={3}>
-              <Card
-                sx={{
-                  maxWidth: 345,
-                  borderRadius: 2,
-                  boxShadow: 3,
-                  transition: "0.3s",
-                  "&:hover": { boxShadow: 6 },
-                }}
-              >
+              <Card sx={{ maxWidth: 345, borderRadius: 2, boxShadow: 3, transition: "0.3s", "&:hover": { boxShadow: 6 } }}>
                 <CardMedia component="img" height="200" image={nft.image} alt={nft.name} />
                 <CardContent>
-                  <Typography variant="h6" component="div" gutterBottom>
-                    {nft.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ height: "50px", overflow: "hidden" }}>
-                    {nft.description}
-                  </Typography>
-                  <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
-                    <strong>Category:</strong> {nft.category}
-                  </Typography>
-                  <Typography variant="subtitle2">
-                    <strong>Price:</strong> {nft.price} ETH
-                  </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      marginTop: "10px",
-                      fontSize: "0.8rem",
-                      fontFamily: "monospace",
-                      color: "#007bff",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    <strong>Owner:</strong> {nft.owner.substring(0, 6)}...{nft.owner.substring(nft.owner.length - 4)}
-                  </Typography>
+                  <Typography variant="h6">{nft.name}</Typography>
+                  <Typography variant="subtitle2"><strong>Category:</strong> {nft.category}</Typography>
+                  <Typography variant="subtitle2"><strong>Owner:</strong> {nft.owner}</Typography>
+                  <Typography variant="subtitle2"><strong>Price:</strong> {nft.price} ETH</Typography>
+
+                  {/* Sell NFT (Only if user owns it) */}
+                  {userAddress === nft.owner && !nft.isForSale && (
+                    <div style={{ marginTop: "10px" }}>
+                      <TextField
+                        label="Set Price (ETH)"
+                        type="number"
+                        variant="outlined"
+                        size="small"
+                        sx={{ width: "100%", marginBottom: "10px" }}
+                        onChange={(e) => (nft.newPrice = e.target.value)}
+                      />
+                      <Button
+                        variant="contained"
+                        color="success"
+                        fullWidth
+                        onClick={() => listNFTForSale(nft.id, nft.newPrice)}
+                      >
+                        Sell NFT
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Buy NFT (Only if it's for sale and user is not the owner) */}
+                  {nft.isForSale && userAddress !== nft.owner && (
+                    <Button variant="contained" color="secondary" fullWidth onClick={() => buyNFT(nft.id, nft.price)}>
+                      Buy Now
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
       ) : (
-        <Typography variant="h6" color="text.secondary" align="center" sx={{ marginTop: "20px" }}>
-          No NFTs found.
-        </Typography>
+        <Typography variant="h6" align="center">No NFTs found.</Typography>
       )}
     </div>
   );
