@@ -129,7 +129,7 @@ const NFTGallery = () => {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "auto", padding: "20px" }}>
-      <Button
+      {/* <Button
         variant="contained"
         color="primary"
         startIcon={<Refresh />}
@@ -137,7 +137,7 @@ const NFTGallery = () => {
         sx={{ marginBottom: "20px" }}
       >
         Refresh NFTs
-      </Button>
+      </Button> */}
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>

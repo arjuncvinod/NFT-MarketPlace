@@ -1,16 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { ethers } from "ethers";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../utils/pinataUpload";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../config";
-import {
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  CircularProgress,
-  Typography,
-  Box,
-} from "@mui/material";
+import { Card, CardContent, TextField, Button, CircularProgress, Typography, Box } from "@mui/material";
+import { toast } from "react-hot-toast"; // Import react-hot-toast
 
 const NFTUploader = () => {
   const [file, setFile] = useState(null);
@@ -19,30 +13,32 @@ const NFTUploader = () => {
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate(); // Initialize navigate
+  const toastId = "nftToast"; // Common toast ID
 
   const mintNFT = async (event) => {
     event.preventDefault();
 
     if (!file || !title || !description || !category || !price) {
-      alert("⚠️ Please fill all fields and upload an image.");
+      toast.error("Please fill all fields and upload an image.", { id: toastId });
       return;
     }
 
     if (isNaN(price) || Number(price) <= 0) {
-      alert("⚠️ Price must be a valid positive number.");
+      toast.error("Price must be a valid positive number.", { id: toastId });
       return;
     }
 
     setLoading(true);
+    toast.loading("Uploading image to IPFS...", { id: toastId });
 
     try {
-      console.log("🔹 Uploading Image to IPFS...");
       const imageURI = await uploadFileToIPFS(file);
       if (!imageURI) throw new Error("❌ Failed to upload NFT image");
 
-      console.log("✅ Image Uploaded:", imageURI);
+      toast.success("Image Uploaded!", { id: toastId });
+      toast.loading("Uploading metadata to IPFS...", { id: toastId });
 
-      console.log("🔹 Uploading Metadata to IPFS...");
       const metadata = {
         name: title,
         description,
@@ -56,7 +52,7 @@ const NFTUploader = () => {
       const metadataURI = await uploadJSONToIPFS(metadata);
       if (!metadataURI) throw new Error("❌ Failed to upload NFT metadata");
 
-      console.log("✅ Metadata Uploaded:", metadataURI);
+      toast.success("Metadata Uploaded!", { id: toastId });
 
       if (!window.ethereum) throw new Error("❌ MetaMask not detected!");
 
@@ -65,7 +61,8 @@ const NFTUploader = () => {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      console.log("🔹 Minting NFT on Blockchain...");
+      toast.loading("Minting NFT on Blockchain...", { id: toastId });
+
       const tx = await contract.mintNFT(
         metadataURI,
         title,
@@ -75,7 +72,8 @@ const NFTUploader = () => {
       );
 
       await tx.wait();
-      alert("✅ NFT Minted Successfully!");
+
+      toast.success("NFT Minted Successfully! 🎉", { id: toastId });
 
       // Reset form after minting
       setFile(null);
@@ -83,9 +81,13 @@ const NFTUploader = () => {
       setDescription("");
       setCategory("");
       setPrice("");
+
+      // Redirect to /gallery after successful minting
+      setTimeout(() => navigate("/gallery"));
+
     } catch (error) {
       console.error("❌ Error Minting NFT:", error);
-      alert(error.message || "NFT Minting Failed");
+      toast.error(error.message || "NFT Minting Failed", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -93,6 +95,7 @@ const NFTUploader = () => {
 
   return (
     <Card sx={{ maxWidth: 450, mx: "auto", mt: 4, p: 3, boxShadow: 3, borderRadius: 3 }}>
+      {/* <Toaster position="bottom-center" reverseOrder={false} /> */}
       <CardContent>
         <Typography variant="h5" fontWeight="bold" align="center" gutterBottom>
           Mint Your NFT
