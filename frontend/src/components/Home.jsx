@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ethers } from "ethers";
-import { Button, AppBar, Toolbar, Typography, Grid, Card, CardMedia, CardContent, Container } from "@mui/material";
+import { Button, Typography, Grid, Card, CardMedia, CardContent, Container } from "@mui/material";
 import "./Home.css";
 import img1 from "../assets/NFTS/CryptoPunk.png";
 import img2 from "../assets/NFTS/bored-ape.png";
