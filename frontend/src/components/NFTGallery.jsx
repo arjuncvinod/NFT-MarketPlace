@@ -19,6 +19,7 @@ const NFTGallery = () => {
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const [userAddress, setUserAddress] = useState("");
+  const [transactionStates, setTransactionStates] = useState({}); // Track loading per tokenId and action
 
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -31,7 +32,7 @@ const NFTGallery = () => {
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
-        setUserAddress(await signer.getAddress());
+        setUserAddress((await signer.getAddress()).toLowerCase());
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
         const totalMinted = await contract.getTotalMintedNFTs();
@@ -53,9 +54,9 @@ const NFTGallery = () => {
             if (!response.ok) throw new Error(`Metadata fetch failed for tokenId ${i}`);
 
             const metadata = await response.json();
-            const owner = await contract.ownerOf(i);
+            const owner = (await contract.ownerOf(i)).toLowerCase();
             const nftDetails = await contract.nftDetails(i);
-            const status = Number(nftDetails.status); // 0: NotForSale, 1: FixedPrice, 2: Auction
+            const status = Number(nftDetails.status);
             const priceInEth = ethers.formatEther(nftDetails.price.toString());
 
             let nftData = {
@@ -64,23 +65,22 @@ const NFTGallery = () => {
               description: metadata.description,
               image: metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/"),
               category:
-                metadata.attributes.find((attr) => attr.trait_type === "Category")?.value ||
-                "Unknown",
+                metadata.attributes.find((attr) => attr.trait_type === "Category")?.value || "Unknown",
               price: priceInEth,
               owner,
               status,
-              listingType: "fixed", // Default listing type
+              listingType: "fixed",
             };
 
-            // Fetch auction details if NFT is in auction
             if (status === 2) {
               const auction = await contract.auctions(i);
               nftData.auction = {
                 startingBid: ethers.formatEther(auction.startingBid),
                 highestBid: ethers.formatEther(auction.highestBid),
                 endTime: Number(auction.endTime),
-                highestBidder: auction.highestBidder,
+                highestBidder: auction.highestBidder.toLowerCase(),
                 ended: auction.ended,
+                seller: auction.seller.toLowerCase(),
               };
             }
 
@@ -101,13 +101,20 @@ const NFTGallery = () => {
     fetchNFTs();
   }, [refresh]);
 
-  const handleRefresh = () => {
-    setLoading(true);
-    setRefresh(!refresh);
+  const setTransactionState = (tokenId, action, state) => {
+    setTransactionStates((prev) => ({
+      ...prev,
+      [`${tokenId}-${action}`]: state,
+    }));
+  };
+
+  const isTransactionInProgress = (tokenId, action) => {
+    return !!transactionStates[`${tokenId}-${action}`];
   };
 
   const buyNFT = async (tokenId, price) => {
     try {
+      setTransactionState(tokenId, "buy", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -120,6 +127,9 @@ const NFTGallery = () => {
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error purchasing NFT:", error);
+      alert("Failed to purchase NFT. Check the console for details.");
+    } finally {
+      setTransactionState(tokenId, "buy", false);
     }
   };
 
@@ -129,7 +139,7 @@ const NFTGallery = () => {
         alert("Price must be greater than 0.");
         return;
       }
-
+      setTransactionState(tokenId, "listForSale", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -138,10 +148,13 @@ const NFTGallery = () => {
       const transaction = await contract.listNFTForSale(tokenId, ethers.parseEther(price));
       await transaction.wait();
 
-      alert(`NFT ${tokenId} is now listed for sale at ${price} ETH!`);
+      alert(`NFT ${tokenId} listed for sale at ${price} ETH!`);
       setRefresh(!refresh);
     } catch (error) {
-      console.error("Error listing NFT for sale:", error);
+      console.error("Error listing NFT:", error);
+      alert("Failed to list NFT. Check the console for details.");
+    } finally {
+      setTransactionState(tokenId, "listForSale", false);
     }
   };
 
@@ -151,17 +164,15 @@ const NFTGallery = () => {
         alert("Starting bid and duration must be greater than 0.");
         return;
       }
-
+      setTransactionState(tokenId, "listForAuction", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      // Approve the contract to transfer the NFT
       const approveTx = await contract.approve(CONTRACT_ADDRESS, tokenId);
       await approveTx.wait();
 
-      // List for auction (duration in seconds)
       const durationSeconds = durationHours * 3600;
       const transaction = await contract.listNFTForAuction(
         tokenId,
@@ -170,10 +181,13 @@ const NFTGallery = () => {
       );
       await transaction.wait();
 
-      alert(`NFT ${tokenId} is now listed for auction!`);
+      alert(`NFT ${tokenId} listed for auction!`);
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error listing NFT for auction:", error);
+      alert("Failed to list NFT for auction. Check the console for details.");
+    } finally {
+      setTransactionState(tokenId, "listForAuction", false);
     }
   };
 
@@ -183,7 +197,7 @@ const NFTGallery = () => {
         alert("Bid amount must be greater than 0.");
         return;
       }
-
+      setTransactionState(tokenId, "bid", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -194,19 +208,25 @@ const NFTGallery = () => {
       });
       await transaction.wait();
 
-      alert(`Successfully placed bid on NFT ${tokenId}!`);
+      alert(`Bid placed on NFT ${tokenId}!`);
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error placing bid:", error);
+      alert("Failed to place bid. Check the console for details.");
+    } finally {
+      setTransactionState(tokenId, "bid", false);
     }
   };
 
   const endAuction = async (tokenId) => {
     try {
+      setTransactionState(tokenId, "endAuction", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+      await provider.getBlockNumber(); // Force state refresh
 
       const transaction = await contract.endAuction(tokenId);
       await transaction.wait();
@@ -215,6 +235,22 @@ const NFTGallery = () => {
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error ending auction:", error);
+      const reason = error.reason || error.message || "Unknown error";
+      if (reason.includes("Auction does not exist")) {
+        alert("The auction does not exist for this NFT.");
+      } else if (reason.includes("NFT is not in auction")) {
+        alert("This NFT is not currently in an auction.");
+      } else if (reason.includes("Auction has not ended yet")) {
+        alert("The auction has not ended yet. Please wait until the end time.");
+      } else if (reason.includes("Auction already ended")) {
+        alert("The auction has already been finalized.");
+      } else if (reason.includes("Only seller or highest bidder")) {
+        alert("You are not authorized to end this auction. Only the seller or highest bidder can do so.");
+      } else {
+        alert(`Failed to end auction: ${reason}. Try refreshing or performing another transaction first.`);
+      }
+    } finally {
+      setTransactionState(tokenId, "endAuction", false);
     }
   };
 
@@ -244,7 +280,6 @@ const NFTGallery = () => {
                     <strong>Category:</strong> {nft.category}
                   </Typography>
 
-                  {/* Ownership or Auction Status */}
                   {nft.status === 2 ? (
                     <Typography variant="subtitle2">
                       <strong>Status:</strong> In Auction
@@ -255,14 +290,12 @@ const NFTGallery = () => {
                     </Typography>
                   )}
 
-                  {/* Fixed Price Display */}
                   {nft.status === 1 && (
                     <Typography variant="subtitle2">
                       <strong>Price:</strong> {nft.price} ETH
                     </Typography>
                   )}
 
-                  {/* Auction Details Display */}
                   {nft.status === 2 && (
                     <div>
                       <Typography variant="subtitle2">
@@ -281,7 +314,6 @@ const NFTGallery = () => {
                     </div>
                   )}
 
-                  {/* Listing Options (if owner and not for sale) */}
                   {userAddress === nft.owner && nft.status === 0 && (
                     <div style={{ marginTop: "10px" }}>
                       <Select
@@ -337,13 +369,17 @@ const NFTGallery = () => {
                             listNFTForAuction(nft.id, nft.startingBid, nft.duration);
                           }
                         }}
+                        disabled={isTransactionInProgress(nft.id, "listForSale") || isTransactionInProgress(nft.id, "listForAuction")}
                       >
-                        List NFT
+                        {isTransactionInProgress(nft.id, "listForSale") || isTransactionInProgress(nft.id, "listForAuction") ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          "List NFT"
+                        )}
                       </Button>
                     </div>
                   )}
 
-                  {/* Buy Button (if fixed price and not owner) */}
                   {nft.status === 1 && userAddress !== nft.owner && (
                     <Button
                       variant="contained"
@@ -351,12 +387,12 @@ const NFTGallery = () => {
                       fullWidth
                       onClick={() => buyNFT(nft.id, nft.price)}
                       sx={{ marginTop: "10px" }}
+                      disabled={isTransactionInProgress(nft.id, "buy")}
                     >
-                      Buy Now
+                      {isTransactionInProgress(nft.id, "buy") ? <CircularProgress size={24} /> : "Buy Now"}
                     </Button>
                   )}
 
-                  {/* Bid Input (if auction and not ended) */}
                   {nft.status === 2 && Date.now() / 1000 < nft.auction.endTime && (
                     <div style={{ marginTop: "10px" }}>
                       {userAddress === nft.auction.highestBidder ? (
@@ -378,28 +414,34 @@ const NFTGallery = () => {
                             color="secondary"
                             fullWidth
                             onClick={() => placeBid(nft.id, nft.bidAmount)}
+                            disabled={isTransactionInProgress(nft.id, "bid")}
                           >
-                            Place Bid
+                            {isTransactionInProgress(nft.id, "bid") ? <CircularProgress size={24} /> : "Place Bid"}
                           </Button>
                         </>
                       )}
                     </div>
                   )}
 
-                  {/* End Auction Button (if auction ended and not yet finalized) */}
                   {nft.status === 2 && Date.now() / 1000 >= nft.auction.endTime && !nft.auction.ended && (
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      onClick={() => endAuction(nft.id)}
-                      sx={{ marginTop: "10px" }}
-                    >
-                      End Auction
-                    </Button>
+                    (userAddress === nft.auction.seller || userAddress === nft.auction.highestBidder) ? (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        onClick={() => endAuction(nft.id)}
+                        sx={{ marginTop: "10px" }}
+                        disabled={isTransactionInProgress(nft.id, "endAuction")}
+                      >
+                        {isTransactionInProgress(nft.id, "endAuction") ? <CircularProgress size={24} /> : "End Auction"}
+                      </Button>
+                    ) : (
+                      <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
+                        Only the seller or highest bidder can end the auction.
+                      </Typography>
+                    )
                   )}
 
-                  {/* Auction Ended Message */}
                   {nft.status === 2 && nft.auction.ended && (
                     <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
                       Auction Ended

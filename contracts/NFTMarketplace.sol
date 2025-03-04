@@ -99,10 +99,11 @@ contract NFTMarketplace is ERC721URIStorage, Ownable, ERC721Holder {
     function listNFTForAuction(uint256 tokenId, uint256 startingBid, uint256 duration) public {
         require(ownerOf(tokenId) == msg.sender, "You do not own this NFT");
         require(nftDetails[tokenId].status == SaleStatus.NotForSale, "NFT is already listed or in auction");
+        require(startingBid > 0, "Starting bid must be greater than zero");
         require(duration > 0, "Duration must be greater than zero");
 
         // Transfer NFT to the contract
-        transferFrom(msg.sender, address(this), tokenId);
+        _transfer(msg.sender, address(this), tokenId);
 
         // Set up auction
         auctions[tokenId] = Auction({
@@ -123,7 +124,9 @@ contract NFTMarketplace is ERC721URIStorage, Ownable, ERC721Holder {
     /// @notice Place a bid on an NFT in auction
     function bidOnNFT(uint256 tokenId) public payable {
         Auction storage auction = auctions[tokenId];
+        require(nftDetails[tokenId].status == SaleStatus.Auction, "NFT is not in auction");
         require(block.timestamp < auction.endTime, "Auction has ended");
+        require(msg.sender != auction.seller, "Seller cannot bid");
         if (auction.highestBid == 0) {
             require(msg.value >= auction.startingBid, "Bid must be at least the starting bid");
         } else {
@@ -145,8 +148,10 @@ contract NFTMarketplace is ERC721URIStorage, Ownable, ERC721Holder {
     /// @notice End an auction and transfer the NFT
     function endAuction(uint256 tokenId) public {
         Auction storage auction = auctions[tokenId];
+        require(nftDetails[tokenId].status == SaleStatus.Auction, "NFT is not in auction");
         require(block.timestamp >= auction.endTime, "Auction has not ended yet");
         require(!auction.ended, "Auction already ended");
+        require(msg.sender == auction.seller || msg.sender == auction.highestBidder, "Only seller or highest bidder can end the auction");
 
         auction.ended = true;
 
@@ -170,6 +175,7 @@ contract NFTMarketplace is ERC721URIStorage, Ownable, ERC721Holder {
     /// @notice Cancel an auction if no bids have been placed
     function cancelAuction(uint256 tokenId) public {
         Auction storage auction = auctions[tokenId];
+        require(nftDetails[tokenId].status == SaleStatus.Auction, "NFT is not in auction");
         require(msg.sender == auction.seller, "Only the seller can cancel");
         require(auction.highestBidder == address(0), "Cannot cancel with bids");
         require(!auction.ended, "Auction already ended");
@@ -183,6 +189,29 @@ contract NFTMarketplace is ERC721URIStorage, Ownable, ERC721Holder {
         nftDetails[tokenId].status = SaleStatus.NotForSale;
 
         emit AuctionCancelled(tokenId);
+    }
+
+    /// @notice Debug function to inspect auction and NFT status
+    function getAuctionDetails(uint256 tokenId) public view returns (
+        address seller,
+        uint256 startingBid,
+        uint256 highestBid,
+        address highestBidder,
+        uint256 endTime,
+        bool ended,
+        SaleStatus status
+    ) {
+        Auction memory auction = auctions[tokenId];
+        NFT memory nft = nftDetails[tokenId];
+        return (
+            auction.seller,
+            auction.startingBid,
+            auction.highestBid,
+            auction.highestBidder,
+            auction.endTime,
+            auction.ended,
+            nft.status
+        );
     }
 
     // Events

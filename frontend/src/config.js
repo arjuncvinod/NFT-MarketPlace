@@ -1,5 +1,5 @@
-export const CONTRACT_ADDRESS = "0x6651F6a42bB4C8Bb2106361e2757e54144d909f6"; // Replace with your deployed contract address
-export const CONTRACT_ABI =[
+export const CONTRACT_ADDRESS = "0x1b566AB990C6dFedFA5cDC07E6aB830001FC8D00"; // Replace with your deployed contract address
+export const CONTRACT_ABI = [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
@@ -465,6 +465,55 @@ export const CONTRACT_ABI =[
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAuctionDetails",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startingBid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "highestBid",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "highestBidder",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "ended",
+        "type": "bool"
+      },
+      {
+        "internalType": "enum NFTMarketplace.SaleStatus",
+        "name": "status",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
