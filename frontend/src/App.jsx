@@ -4,6 +4,7 @@ import Navbar from "./components/NavBar";
 import Home from "./components/Home";
 import NFTGallery from "./components/NFTGallery";
 import NFTUploader from "./components/NFTUploader";
+import Profile from "./components/Profile";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/gallery" element={<NFTGallery />} />
         <Route path="/upload" element={<NFTUploader />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );
