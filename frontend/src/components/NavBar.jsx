@@ -18,6 +18,9 @@ const Navbar = () => {
           <Button component={Link} to="/gallery" sx={{ color: "white", marginRight: 2 }}>
             NFT Gallery
           </Button>
+          <Button component={Link} to="/profile" sx={{ color: "white", marginRight: 2 }}>
+           My Profile
+          </Button>
           <Button component={Link} to="/upload" sx={{ color: "white" }}>
             Upload NFT
           </Button>
