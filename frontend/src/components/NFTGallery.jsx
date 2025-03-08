@@ -19,7 +19,7 @@ const NFTGallery = () => {
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const [userAddress, setUserAddress] = useState("");
-  const [transactionStates, setTransactionStates] = useState({}); // Track loading per tokenId and action
+  const [transactionStates, setTransactionStates] = useState({});
 
   useEffect(() => {
     const fetchNFTs = async () => {
@@ -32,7 +32,8 @@ const NFTGallery = () => {
         const provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         const signer = await provider.getSigner();
-        setUserAddress((await signer.getAddress()).toLowerCase());
+        const address = (await signer.getAddress()).toLowerCase();
+        setUserAddress(address);
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
         const totalMinted = await contract.getTotalMintedNFTs();
@@ -43,11 +44,26 @@ const NFTGallery = () => {
         }
 
         let nftList = [];
+        const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+
         for (let i = 1; i <= totalMinted; i++) {
           try {
             await new Promise((resolve) => setTimeout(resolve, 500));
             const tokenURI = await contract.tokenURI(i);
             if (!tokenURI.startsWith("ipfs://")) continue;
+
+            const nftDetails = await contract.nftDetails(i);
+            const status = Number(nftDetails.status);
+
+            // Only include NFTs listed for fixed price (status 1) or active auctions (status 2)
+            if (status !== 1 && status !== 2) continue;
+
+            // For auctions, check if ended or exceeded endTime
+            let auction = null;
+            if (status === 2) {
+              auction = await contract.auctions(i);
+              if (auction.ended || currentTime >= Number(auction.endTime)) continue; // Skip ended or expired auctions
+            }
 
             const metadataURL = tokenURI.replace("ipfs://", "https://ipfs.io/ipfs/");
             const response = await fetch(metadataURL);
@@ -55,8 +71,6 @@ const NFTGallery = () => {
 
             const metadata = await response.json();
             const owner = (await contract.ownerOf(i)).toLowerCase();
-            const nftDetails = await contract.nftDetails(i);
-            const status = Number(nftDetails.status);
             const priceInEth = ethers.formatEther(nftDetails.price.toString());
 
             let nftData = {
@@ -72,8 +86,7 @@ const NFTGallery = () => {
               listingType: "fixed",
             };
 
-            if (status === 2) {
-              const auction = await contract.auctions(i);
+            if (status === 2 && auction) {
               nftData.auction = {
                 startingBid: ethers.formatEther(auction.startingBid),
                 highestBid: ethers.formatEther(auction.highestBid),
@@ -314,72 +327,6 @@ const NFTGallery = () => {
                     </div>
                   )}
 
-                  {userAddress === nft.owner && nft.status === 0 && (
-                    <div style={{ marginTop: "10px" }}>
-                      <Select
-                        value={nft.listingType || "fixed"}
-                        onChange={(e) => {
-                          nft.listingType = e.target.value;
-                          setNfts([...nfts]);
-                        }}
-                        size="small"
-                        fullWidth
-                      >
-                        <MenuItem value="fixed">Fixed Price</MenuItem>
-                        <MenuItem value="auction">Auction</MenuItem>
-                      </Select>
-                      {nft.listingType === "fixed" ? (
-                        <TextField
-                          label="Set Price (ETH)"
-                          type="number"
-                          variant="outlined"
-                          size="small"
-                          sx={{ width: "100%", marginTop: "10px" }}
-                          onChange={(e) => (nft.newPrice = e.target.value)}
-                        />
-                      ) : (
-                        <>
-                          <TextField
-                            label="Starting Bid (ETH)"
-                            type="number"
-                            variant="outlined"
-                            size="small"
-                            sx={{ width: "100%", marginTop: "10px" }}
-                            onChange={(e) => (nft.startingBid = e.target.value)}
-                          />
-                          <TextField
-                            label="Duration (hours)"
-                            type="number"
-                            variant="outlined"
-                            size="small"
-                            sx={{ width: "100%", marginTop: "10px" }}
-                            onChange={(e) => (nft.duration = e.target.value)}
-                          />
-                        </>
-                      )}
-                      <Button
-                        variant="contained"
-                        color="success"
-                        fullWidth
-                        sx={{ marginTop: "10px" }}
-                        onClick={() => {
-                          if (nft.listingType === "fixed") {
-                            listNFTForSale(nft.id, nft.newPrice);
-                          } else {
-                            listNFTForAuction(nft.id, nft.startingBid, nft.duration);
-                          }
-                        }}
-                        disabled={isTransactionInProgress(nft.id, "listForSale") || isTransactionInProgress(nft.id, "listForAuction")}
-                      >
-                        {isTransactionInProgress(nft.id, "listForSale") || isTransactionInProgress(nft.id, "listForAuction") ? (
-                          <CircularProgress size={24} />
-                        ) : (
-                          "List NFT"
-                        )}
-                      </Button>
-                    </div>
-                  )}
-
                   {nft.status === 1 && userAddress !== nft.owner && (
                     <Button
                       variant="contained"
@@ -395,7 +342,11 @@ const NFTGallery = () => {
 
                   {nft.status === 2 && Date.now() / 1000 < nft.auction.endTime && (
                     <div style={{ marginTop: "10px" }}>
-                      {userAddress === nft.auction.highestBidder ? (
+                      {userAddress === nft.auction.seller ? (
+                        <Typography variant="subtitle2">
+                          You are the seller
+                        </Typography>
+                      ) : userAddress === nft.auction.highestBidder ? (
                         <Typography variant="subtitle2">
                           You are the current highest bidder!
                         </Typography>
@@ -441,12 +392,6 @@ const NFTGallery = () => {
                       </Typography>
                     )
                   )}
-
-                  {nft.status === 2 && nft.auction.ended && (
-                    <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
-                      Auction Ended
-                    </Typography>
-                  )}
                 </CardContent>
               </Card>
             </Grid>
@@ -454,7 +399,7 @@ const NFTGallery = () => {
         </Grid>
       ) : (
         <Typography variant="h6" align="center">
-          No NFTs found.
+          No NFTs are currently listed for sale or auction.
         </Typography>
       )}
     </div>
