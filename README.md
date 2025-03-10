@@ -1,52 +1,58 @@
-# NFT Marketplace
+# 🚀 NFT Marketplace  
 
-## Technology Stack & Tools
+An advanced **NFT Marketplace** built with **React (Vite), Hardhat, IPFS (Pinata), ethers.js, and Firebase**. Users can mint, buy, and sell NFTs seamlessly, with an integrated **auction system** for bidding.  
 
-- Solidity (Writing Smart Contract)
-- Javascript (React & Testing)
-- [Ethers](https://docs.ethers.io/v5/) (Blockchain Interaction)
-- [Hardhat](https://hardhat.org/) (Development Framework)
-- [Ipfs](https://ipfs.io/) (Metadata storage)
-- [React routers](https://v5.reactrouter.com/) (Navigational components)
+## 🔥 Features  
 
-## Requirements For Initial Setup
-- Install [NodeJS](https://nodejs.org/en/), should work with any node version below 16.5.0
-- Install [Hardhat](https://hardhat.org/)
+✅ **MetaMask Authentication** – Secure Web3 login  
+✅ **NFT Minting** – Upload NFTs with metadata stored on **IPFS (Pinata)**  
+✅ **NFT Display** – Fetch and show minted NFTs  
+✅ **Buying & Selling NFTs** – Transfer ownership with payments  
+✅ **Auction System** – Bid-based NFT sales with auto-refund for losing bidders  
 
-## Setting Up
-### 1. Clone/Download the Repository
+## 🛠️ Tech Stack  
 
+- **Frontend:** React (Vite), ethers.js  
+- **Backend:** Hardhat (Solidity Smart Contracts)  
+- **Storage:** IPFS (Pinata)  
+- **Blockchain Interaction:** MetaMask  
 
-### 2. Create account on Pinata IPFS Provider and Generate your free API Key
-### 3. Update API Keys in .env file with your keys
+## 📌 Installation  
 
-### 4. Install Dependencies:
-```
-$ cd nft_marketplace
-$ npm install
-```
-### 5. Boot up local development blockchain
-```
-$ cd nft_marketplace
-$ npx hardhat node
+### 1️⃣ Clone the Repo  
+```bash
+git clone https://github.com/arjuncvinod/NFT-MarketPlace.git
+cd NFT-MarketPlace
 ```
 
-### 6. Connect development blockchain accounts to Metamask
-- Copy private key of the addresses and import to Metamask
-- Connect your metamask to hardhat blockchain, network 127.0.0.1:8545.
-- If you have not added hardhat to the list of networks on your metamask, open up a browser, click the fox icon, then click the top center dropdown button that lists all the available networks then click add networks. A form should pop up. For the "Network Name" field enter "Hardhat". For the "New RPC URL" field enter "http://127.0.0.1:8545". For the chain ID enter "31337". Then click save.  
+### 2️⃣ Install Dependencies  
+```bash
+npm install
 
+cd frontend
 
-### 7. Migrate Smart Contracts
-`npx hardhat run src/backend/scripts/deploy.js --network localhost`
+npm install
+```
 
-### 8. Run Tests
-`$ npx hardhat test`
+### 3️⃣ Setup Environment Variables  
+Create a `.env` file in the /frontend and add:  
+```plaintext
+VITE_PINATA_API_KEY = your_pinata_api_key
+VITE_PINATA_SECRET_KEY = your_pinata_secret_key
+```
 
-### 9. Launch Frontend
-`$ npm run start`
+### 4️⃣ Start Development Server  
+```bash
+cd frontend
+npm run dev
+```
 
-License
-----
-MIT
+### 5️⃣ Deploy Smart Contract (Hardhat)  
+```bash
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network localhost
+```
 
+## 📜 License  
+
+This project is **open-source** under the MIT License.  
