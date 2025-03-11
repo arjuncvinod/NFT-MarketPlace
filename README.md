@@ -1,7 +1,7 @@
 # 🚀 NFT Marketplace  
 
 An advanced **NFT Marketplace** built with **React (Vite), Hardhat, IPFS (Pinata), ethers.js, and Firebase**. Users can mint, buy, and sell NFTs seamlessly, with an integrated **auction system** for bidding.  
-
+#### [Live Demo](https://nftmarketplace-acv.netlify.app/)
 ## 🔥 Features  
 
 ✅ **MetaMask Authentication** – Secure Web3 login  
