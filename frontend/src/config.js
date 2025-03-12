@@ -1,5 +1,5 @@
-export const CONTRACT_ADDRESS = "0x1b566AB990C6dFedFA5cDC07E6aB830001FC8D00"; // Replace with your deployed contract address
-export const CONTRACT_ABI = [
+export const CONTRACT_ADDRESS = "0x8aCE582359B03b931b18F2633AdbbAbD3c61c12a"; // Replace with your deployed contract address
+export const CONTRACT_ABI =  [
   {
     "inputs": [],
     "stateMutability": "nonpayable",
