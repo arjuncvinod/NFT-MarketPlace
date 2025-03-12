@@ -15,6 +15,7 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
+import toast from "react-hot-toast"; // Import only toast
 
 const NFTGallery = () => {
   const [nfts, setNfts] = useState([]);
@@ -44,7 +45,7 @@ const NFTGallery = () => {
   useEffect(() => {
     const fetchNFTs = async () => {
       if (!window.ethereum) {
-        alert("Please install MetaMask!");
+        toast.error("Please install MetaMask!");
         return;
       }
 
@@ -137,7 +138,6 @@ const NFTGallery = () => {
   useEffect(() => {
     let filtered = [...nfts];
 
-
     if (searchQuery) {
       filtered = filtered.filter(
         (nft) =>
@@ -146,16 +146,13 @@ const NFTGallery = () => {
       );
     }
 
-
     if (selectedCategory) {
       filtered = filtered.filter((nft) => nft.category === selectedCategory);
     }
 
-
     if (listingTypeFilter) {
       filtered = filtered.filter((nft) => nft.listingType === listingTypeFilter);
     }
-
 
     if (sortOrder === "lowToHigh") {
       filtered = filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
@@ -188,78 +185,20 @@ const NFTGallery = () => {
       const transaction = await contract.buyNFT(tokenId, { value: ethers.parseEther(price) });
       await transaction.wait();
 
-      alert(`Successfully purchased NFT ${tokenId}!`);
+      toast.success(`Successfully purchased NFT`);
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error purchasing NFT:", error);
-      alert("Failed to purchase NFT. Check the console for details.");
+      toast.error("Failed to purchase NFT. Check the console for details.");
     } finally {
       setTransactionState(tokenId, "buy", false);
     }
   };
 
-  // const listNFTForSale = async (tokenId, price) => {
-  //   try {
-  //     if (price <= 0) {
-  //       alert("Price must be greater than 0.");
-  //       return;
-  //     }
-  //     setTransactionState(tokenId, "listForSale", true);
-  //     const provider = new ethers.BrowserProvider(window.ethereum);
-  //     await provider.send("eth_requestAccounts", []);
-  //     const signer = await provider.getSigner();
-  //     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-  //     const transaction = await contract.listNFTForSale(tokenId, ethers.parseEther(price));
-  //     await transaction.wait();
-
-  //     alert(`NFT ${tokenId} listed for sale at ${price} ETH!`);
-  //     setRefresh(!refresh);
-  //   } catch (error) {
-  //     console.error("Error listing NFT:", error);
-  //     alert("Failed to list NFT. Check the console for details.");
-  //   } finally {
-  //     setTransactionState(tokenId, "listForSale", false);
-  //   }
-  // };
-
-  // const listNFTForAuction = async (tokenId, startingBid, durationHours) => {
-  //   try {
-  //     if (startingBid <= 0 || durationHours <= 0) {
-  //       alert("Starting bid and duration must be greater than 0.");
-  //       return;
-  //     }
-  //     setTransactionState(tokenId, "listForAuction", true);
-  //     const provider = new ethers.BrowserProvider(window.ethereum);
-  //     await provider.send("eth_requestAccounts", []);
-  //     const signer = await provider.getSigner();
-  //     const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-
-  //     const approveTx = await contract.approve(CONTRACT_ADDRESS, tokenId);
-  //     await approveTx.wait();
-
-  //     const durationSeconds = durationHours * 3600;
-  //     const transaction = await contract.listNFTForAuction(
-  //       tokenId,
-  //       ethers.parseEther(startingBid),
-  //       durationSeconds
-  //     );
-  //     await transaction.wait();
-
-  //     alert(`NFT ${tokenId} listed for auction!`);
-  //     setRefresh(!refresh);
-  //   } catch (error) {
-  //     console.error("Error listing NFT for auction:", error);
-  //     alert("Failed to list NFT for auction. Check the console for details.");
-  //   } finally {
-  //     setTransactionState(tokenId, "listForAuction", false);
-  //   }
-  // };
-
   const placeBid = async (tokenId, bidAmount) => {
     try {
       if (bidAmount <= 0) {
-        alert("Bid amount must be greater than 0.");
+        toast.error("Bid amount must be greater than 0.");
         return;
       }
       setTransactionState(tokenId, "bid", true);
@@ -273,11 +212,11 @@ const NFTGallery = () => {
       });
       await transaction.wait();
 
-      alert(`Bid placed on NFT ${tokenId}!`);
+      toast.success(`Bid placed on NFT ${tokenId}!`);
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error placing bid:", error);
-      alert("Failed to place bid. Check the console for details.");
+      toast.error("Failed to place bid. Check the console for details.");
     } finally {
       setTransactionState(tokenId, "bid", false);
     }
@@ -295,23 +234,23 @@ const NFTGallery = () => {
       const transaction = await contract.endAuction(tokenId);
       await transaction.wait();
 
-      alert(`Auction for NFT ${tokenId} has ended!`);
+      toast.success(`Auction for NFT ${tokenId} has ended!`);
       setRefresh(!refresh);
     } catch (error) {
       console.error("Error ending auction:", error);
       const reason = error.reason || error.message || "Unknown error";
       if (reason.includes("Auction does not exist")) {
-        alert("The auction does not exist for this NFT.");
+        toast.error("The auction does not exist for this NFT.");
       } else if (reason.includes("NFT is not in auction")) {
-        alert("This NFT is not currently in an auction.");
+        toast.error("This NFT is not currently in an auction.");
       } else if (reason.includes("Auction has not ended yet")) {
-        alert("The auction has not ended yet. Please wait until the end time.");
+        toast.error("The auction has not ended yet. Please wait until the end time.");
       } else if (reason.includes("Auction already ended")) {
-        alert("The auction has already been finalized.");
+        toast.error("The auction has already been finalized.");
       } else if (reason.includes("Only seller or highest bidder")) {
-        alert("You are not authorized to end this auction. Only the seller or highest bidder can do so.");
+        toast.error("You are not authorized to end this auction. Only the seller or highest bidder can do so.");
       } else {
-        alert(`Failed to end auction: ${reason}. Try refreshing or performing another transaction first.`);
+        toast.error(`Failed to end auction: ${reason}. Try refreshing or performing another transaction first.`);
       }
     } finally {
       setTransactionState(tokenId, "endAuction", false);
@@ -320,7 +259,6 @@ const NFTGallery = () => {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "auto", padding: "20px" }}>
-
       <Grid container spacing={2} sx={{ marginBottom: "20px" }}>
         <Grid item xs={12} sm={6} md={3}>
           <TextField
@@ -341,7 +279,6 @@ const NFTGallery = () => {
               "& .MuiInputBase-input": {
                 color: "#1976d2",
               },
-
               "& .MuiInputLabel-root": {
                 color: "#757575",
               },
@@ -349,21 +286,24 @@ const NFTGallery = () => {
                 color: "#1976d2 ",
               },
             }}
-
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined" sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#757575",
-            },
-            "& .MuiSelect-select": {
-              color: "#757575",
-            },
-            "& .MuiInputLabel-root": {
-              color: "#757575",
-            },
-          }}>
+          <FormControl
+            fullWidth
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#757575",
+              },
+              "& .MuiSelect-select": {
+                color: "#757575",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#757575",
+              },
+            }}
+          >
             <InputLabel>Category</InputLabel>
             <Select
               value={selectedCategory}
@@ -380,17 +320,21 @@ const NFTGallery = () => {
           </FormControl>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined" sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#757575",
-            },
-            "& .MuiSelect-select": {
-              color: "#757575",
-            },
-            "& .MuiInputLabel-root": {
-              color: "#757575",
-            },
-          }}>
+          <FormControl
+            fullWidth
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#757575",
+              },
+              "& .MuiSelect-select": {
+                color: "#757575",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#757575",
+              },
+            }}
+          >
             <InputLabel>Sort By Price</InputLabel>
             <Select
               value={sortOrder}
@@ -404,17 +348,21 @@ const NFTGallery = () => {
           </FormControl>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <FormControl fullWidth variant="outlined" sx={{
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#757575",
-            },
-            "& .MuiSelect-select": {
-              color: "#757575",
-            },
-            "& .MuiInputLabel-root": {
-              color: "#757575", 
-            },
-          }}>
+          <FormControl
+            fullWidth
+            variant="outlined"
+            sx={{
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#757575",
+              },
+              "& .MuiSelect-select": {
+                color: "#757575",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#757575",
+              },
+            }}
+          >
             <InputLabel>Listing Type</InputLabel>
             <Select
               value={listingTypeFilter}
@@ -544,7 +492,11 @@ const NFTGallery = () => {
                         sx={{ marginTop: "10px" }}
                         disabled={isTransactionInProgress(nft.id, "endAuction")}
                       >
-                        {isTransactionInProgress(nft.id, "endAuction") ? <CircularProgress size={24} /> : "End Auction"}
+                        {isTransactionInProgress(nft.id, "endAuction") ? (
+                          <CircularProgress size={24} />
+                        ) : (
+                          "End Auction"
+                        )}
                       </Button>
                     ) : (
                       <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
