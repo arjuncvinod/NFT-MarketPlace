@@ -19,7 +19,7 @@ const Profile = () => {
   const [auctionNfts, setAuctionNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userAddress, setUserAddress] = useState("");
-  const [transactionInProgress, setTransactionInProgress] = useState(false);
+  const [transactionStates, setTransactionStates] = useState({}); // Object to track individual button states
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -68,7 +68,7 @@ const Profile = () => {
                 description: metadata.description,
                 category: metadata.attributes.find(attr => attr.trait_type === "Category")?.value || "Unknown",
                 status: status,
-                listingType: "fixed", // Default listing type
+                listingType: "fixed",
               });
             }
 
@@ -96,7 +96,7 @@ const Profile = () => {
                     endTime: Number(auction.endTime),
                     highestBidder,
                     seller,
-                    ended: auction.ended, // Include ended status
+                    ended: auction.ended,
                   },
                 });
               }
@@ -118,13 +118,26 @@ const Profile = () => {
     fetchProfileData();
   }, []);
 
+  // Helper function to set transaction state for a specific tokenId and action
+  const setTransactionState = (tokenId, action, state) => {
+    setTransactionStates((prev) => ({
+      ...prev,
+      [`${tokenId}-${action}`]: state,
+    }));
+  };
+
+  // Helper function to check if a transaction is in progress for a specific tokenId and action
+  const isTransactionInProgress = (tokenId, action) => {
+    return !!transactionStates[`${tokenId}-${action}`];
+  };
+
   const listNFTForSale = async (tokenId, price) => {
     try {
       if (price <= 0) {
         alert("Price must be greater than 0.");
         return;
       }
-      setTransactionInProgress(true);
+      setTransactionState(tokenId, "listForSale", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -139,7 +152,7 @@ const Profile = () => {
       console.error("Error listing NFT for sale:", error);
       alert("Failed to list NFT for sale. Check the console for details.");
     } finally {
-      setTransactionInProgress(false);
+      setTransactionState(tokenId, "listForSale", false);
     }
   };
 
@@ -149,7 +162,7 @@ const Profile = () => {
         alert("Starting bid and duration must be greater than 0.");
         return;
       }
-      setTransactionInProgress(true);
+      setTransactionState(tokenId, "listForAuction", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
@@ -172,21 +185,19 @@ const Profile = () => {
       console.error("Error listing NFT for auction:", error);
       alert("Failed to list NFT for auction. Check the console for details.");
     } finally {
-      setTransactionInProgress(false);
+      setTransactionState(tokenId, "listForAuction", false);
     }
   };
 
   const endAuction = async (tokenId) => {
     try {
-      setTransactionInProgress(true);
+      setTransactionState(tokenId, "endAuction", true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
-      // Force a state refresh to sync provider
       await provider.getBlockNumber();
-
       const transaction = await contract.endAuction(tokenId);
       await transaction.wait();
 
@@ -209,7 +220,7 @@ const Profile = () => {
         alert(`Failed to end auction: ${reason}. Try refreshing or performing another transaction first.`);
       }
     } finally {
-      setTransactionInProgress(false);
+      setTransactionState(tokenId, "endAuction", false);
     }
   };
 
@@ -233,7 +244,9 @@ const Profile = () => {
                     <CardMedia component="img" height="200" image={nft.image} alt={nft.name} />
                     <CardContent>
                       <Typography variant="h6">{nft.name}</Typography>
-                      <Typography variant="subtitle2"><strong>Category:</strong> {nft.category}</Typography>
+                      <Typography variant="subtitle2">
+                        <strong>Category:</strong> {nft.category}
+                      </Typography>
                       <Typography variant="body2">{nft.description}</Typography>
 
                       {/* Listing Options (if NFT is not listed) */}
@@ -292,9 +305,17 @@ const Profile = () => {
                                 listNFTForAuction(nft.id, nft.startingBid, nft.duration);
                               }
                             }}
-                            disabled={transactionInProgress}
+                            disabled={
+                              isTransactionInProgress(nft.id, "listForSale") ||
+                              isTransactionInProgress(nft.id, "listForAuction")
+                            }
                           >
-                            {transactionInProgress ? <CircularProgress size={24} /> : "List NFT"}
+                            {isTransactionInProgress(nft.id, "listForSale") ||
+                            isTransactionInProgress(nft.id, "listForAuction") ? (
+                              <CircularProgress size={24} />
+                            ) : (
+                              "List NFT"
+                            )}
                           </Button>
                         </div>
                       )}
@@ -319,16 +340,28 @@ const Profile = () => {
                     <CardMedia component="img" height="200" image={nft.image} alt={nft.name} />
                     <CardContent>
                       <Typography variant="h6">{nft.name}</Typography>
-                      <Typography variant="subtitle2"><strong>Category:</strong> {nft.category}</Typography>
+                      <Typography variant="subtitle2">
+                        <strong>Category:</strong> {nft.category}
+                      </Typography>
                       <Typography variant="body2">{nft.description}</Typography>
-                      <Typography variant="subtitle2"><strong>Starting Bid:</strong> {nft.auction.startingBid} ETH</Typography>
-                      <Typography variant="subtitle2"><strong>Current Bid:</strong> {nft.auction.highestBid} ETH</Typography>
-                      <Typography variant="subtitle2"><strong>Ends at:</strong> {new Date(nft.auction.endTime * 1000).toLocaleString()}</Typography>
+                      <Typography variant="subtitle2">
+                        <strong>Starting Bid:</strong> {nft.auction.startingBid} ETH
+                      </Typography>
+                      <Typography variant="subtitle2">
+                        <strong>Current Bid:</strong> {nft.auction.highestBid} ETH
+                      </Typography>
+                      <Typography variant="subtitle2">
+                        <strong>Ends at:</strong> {new Date(nft.auction.endTime * 1000).toLocaleString()}
+                      </Typography>
                       {nft.auction.seller === userAddress && (
-                        <Typography variant="subtitle2"><strong>Role:</strong> Seller</Typography>
+                        <Typography variant="subtitle2">
+                          <strong>Role:</strong> Seller
+                        </Typography>
                       )}
                       {nft.auction.highestBidder === userAddress && (
-                        <Typography variant="subtitle2"><strong>Role:</strong> Highest Bidder</Typography>
+                        <Typography variant="subtitle2">
+                          <strong>Role:</strong> Highest Bidder
+                        </Typography>
                       )}
 
                       {/* End Auction Button */}
@@ -340,9 +373,13 @@ const Profile = () => {
                             fullWidth
                             onClick={() => endAuction(nft.id)}
                             sx={{ marginTop: "10px" }}
-                            disabled={transactionInProgress}
+                            disabled={isTransactionInProgress(nft.id, "endAuction")}
                           >
-                            {transactionInProgress ? <CircularProgress size={24} /> : "End Auction"}
+                            {isTransactionInProgress(nft.id, "endAuction") ? (
+                              <CircularProgress size={24} />
+                            ) : (
+                              "End Auction"
+                            )}
                           </Button>
                         ) : (
                           <Typography variant="subtitle2" sx={{ marginTop: "10px" }}>
