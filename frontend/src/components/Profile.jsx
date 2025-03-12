@@ -13,18 +13,19 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
+import toast from "react-hot-toast"; // Import react-hot-toast
 
 const Profile = () => {
   const [ownedNfts, setOwnedNfts] = useState([]);
   const [auctionNfts, setAuctionNfts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userAddress, setUserAddress] = useState("");
-  const [transactionStates, setTransactionStates] = useState({}); // Object to track individual button states
+  const [transactionStates, setTransactionStates] = useState({});
 
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!window.ethereum) {
-        alert("Please install MetaMask!");
+        toast.error("Please install MetaMask!");
         return;
       }
 
@@ -66,7 +67,8 @@ const Profile = () => {
                 name: metadata.name,
                 image: metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/"),
                 description: metadata.description,
-                category: metadata.attributes.find(attr => attr.trait_type === "Category")?.value || "Unknown",
+                category:
+                  metadata.attributes.find((attr) => attr.trait_type === "Category")?.value || "Unknown",
                 status: status,
                 listingType: "fixed",
               });
@@ -89,7 +91,8 @@ const Profile = () => {
                   name: metadata.name,
                   image: metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/"),
                   description: metadata.description,
-                  category: metadata.attributes.find(attr => attr.trait_type === "Category")?.value || "Unknown",
+                  category:
+                    metadata.attributes.find((attr) => attr.trait_type === "Category")?.value || "Unknown",
                   auction: {
                     startingBid: ethers.formatEther(auction.startingBid),
                     highestBid: ethers.formatEther(auction.highestBid),
@@ -118,7 +121,6 @@ const Profile = () => {
     fetchProfileData();
   }, []);
 
-  // Helper function to set transaction state for a specific tokenId and action
   const setTransactionState = (tokenId, action, state) => {
     setTransactionStates((prev) => ({
       ...prev,
@@ -126,7 +128,6 @@ const Profile = () => {
     }));
   };
 
-  // Helper function to check if a transaction is in progress for a specific tokenId and action
   const isTransactionInProgress = (tokenId, action) => {
     return !!transactionStates[`${tokenId}-${action}`];
   };
@@ -134,7 +135,7 @@ const Profile = () => {
   const listNFTForSale = async (tokenId, price) => {
     try {
       if (price <= 0) {
-        alert("Price must be greater than 0.");
+        toast.error("Price must be greater than 0.");
         return;
       }
       setTransactionState(tokenId, "listForSale", true);
@@ -146,11 +147,11 @@ const Profile = () => {
       const transaction = await contract.listNFTForSale(tokenId, ethers.parseEther(price));
       await transaction.wait();
 
-      alert(`NFT ${tokenId} listed for sale at ${price} ETH!`);
-      window.location.reload();
+      toast.success(`NFT listed for sale at ${price} ETH!`);
+      window.location.reload(); 
     } catch (error) {
       console.error("Error listing NFT for sale:", error);
-      alert("Failed to list NFT for sale. Check the console for details.");
+      toast.error("Failed to list NFT for sale. Check the console for details.");
     } finally {
       setTransactionState(tokenId, "listForSale", false);
     }
@@ -159,7 +160,7 @@ const Profile = () => {
   const listNFTForAuction = async (tokenId, startingBid, durationHours) => {
     try {
       if (startingBid <= 0 || durationHours <= 0) {
-        alert("Starting bid and duration must be greater than 0.");
+        toast.error("Starting bid and duration must be greater than 0.");
         return;
       }
       setTransactionState(tokenId, "listForAuction", true);
@@ -179,11 +180,11 @@ const Profile = () => {
       );
       await transaction.wait();
 
-      alert(`NFT ${tokenId} listed for auction!`);
+      toast.success(`NFT listed for auction!`);
       window.location.reload();
     } catch (error) {
       console.error("Error listing NFT for auction:", error);
-      alert("Failed to list NFT for auction. Check the console for details.");
+      toast.error("Failed to list NFT for auction. Check the console for details.");
     } finally {
       setTransactionState(tokenId, "listForAuction", false);
     }
@@ -201,23 +202,23 @@ const Profile = () => {
       const transaction = await contract.endAuction(tokenId);
       await transaction.wait();
 
-      alert(`Auction for NFT ${tokenId} has ended!`);
+      toast.success(`Auction for NFT ${tokenId} has ended!`);
       window.location.reload();
     } catch (error) {
       console.error("Error ending auction:", error);
       const reason = error.reason || error.message || "Unknown error";
       if (reason.includes("Auction does not exist")) {
-        alert("The auction does not exist for this NFT.");
+        toast.error("The auction does not exist for this NFT.");
       } else if (reason.includes("NFT is not in auction")) {
-        alert("This NFT is not currently in an auction.");
+        toast.error("This NFT is not currently in an auction.");
       } else if (reason.includes("Auction has not ended yet")) {
-        alert("The auction has not ended yet. Please wait until the end time.");
+        toast.error("The auction has not ended yet. Please wait until the end time.");
       } else if (reason.includes("Auction already ended")) {
-        alert("The auction has already been finalized.");
+        toast.error("The auction has already been finalized.");
       } else if (reason.includes("Only seller or highest bidder")) {
-        alert("You are not authorized to end this auction. Only the seller or highest bidder can do so.");
+        toast.error("You are not authorized to end this auction. Only the seller or highest bidder can do so.");
       } else {
-        alert(`Failed to end auction: ${reason}. Try refreshing or performing another transaction first.`);
+        toast.error(`Failed to end auction. \n Try refreshing or performing another transaction first.`);
       }
     } finally {
       setTransactionState(tokenId, "endAuction", false);
@@ -232,7 +233,6 @@ const Profile = () => {
         </div>
       ) : (
         <>
-          {/* Section for Owned NFTs */}
           <Typography variant="h4" gutterBottom>
             Your NFTs
           </Typography>
@@ -249,7 +249,6 @@ const Profile = () => {
                       </Typography>
                       <Typography variant="body2">{nft.description}</Typography>
 
-                      {/* Listing Options (if NFT is not listed) */}
                       {nft.status === 0 && (
                         <div style={{ marginTop: "10px" }}>
                           <Select
@@ -328,7 +327,6 @@ const Profile = () => {
             <Typography variant="h6" align="center">{"You don't own any NFTs."}</Typography>
           )}
 
-          {/* Section for Auction NFTs */}
           <Typography variant="h4" gutterBottom style={{ marginTop: "40px" }}>
             Your Auctions
           </Typography>
@@ -364,7 +362,6 @@ const Profile = () => {
                         </Typography>
                       )}
 
-                      {/* End Auction Button */}
                       {Date.now() / 1000 >= nft.auction.endTime && !nft.auction.ended && (
                         (userAddress === nft.auction.seller || userAddress === nft.auction.highestBidder) ? (
                           <Button
