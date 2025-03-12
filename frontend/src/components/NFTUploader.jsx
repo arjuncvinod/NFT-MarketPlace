@@ -1,10 +1,22 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import { uploadFileToIPFS, uploadJSONToIPFS } from "../utils/pinataUpload";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../config";
-import { Card, CardContent, TextField, Button, CircularProgress, Typography, Box } from "@mui/material";
-import { toast } from "react-hot-toast"; // Import react-hot-toast
+import {
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  CircularProgress,
+  Typography,
+  Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
+import { toast } from "react-hot-toast";
 
 const NFTUploader = () => {
   const [file, setFile] = useState(null);
@@ -13,8 +25,22 @@ const NFTUploader = () => {
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate(); // Initialize navigate
-  const toastId = "nftToast"; // Common toast ID
+  const navigate = useNavigate();
+  const toastId = "nftToast";
+
+  
+  const categories = [
+    "Digital Art",
+    "Gaming Assets",
+    "Music & Audio",
+    "Video & Animation",
+    "Sports & Collectibles",
+    "Virtual Real Estate",
+    "Domain Names",
+    "Utility & Memberships",
+    "Photography",
+    "Fashion & Wearables",
+  ];
 
   const mintNFT = async (event) => {
     event.preventDefault();
@@ -68,22 +94,22 @@ const NFTUploader = () => {
         title,
         description,
         category,
-        ethers.parseEther(price) // Convert ETH to Wei
+        ethers.parseEther(price)
       );
 
       await tx.wait();
 
       toast.success("NFT Minted Successfully! 🎉", { id: toastId });
 
-      // Reset form after minting
+  
       setFile(null);
       setTitle("");
       setDescription("");
       setCategory("");
       setPrice("");
 
-      // Redirect to /gallery after successful minting
-      setTimeout(() => navigate("/gallery"));
+  
+      setTimeout(() => navigate("/profile"), 2000);
 
     } catch (error) {
       console.error("❌ Error Minting NFT:", error);
@@ -95,7 +121,6 @@ const NFTUploader = () => {
 
   return (
     <Card sx={{ maxWidth: 450, mx: "auto", mt: 4, p: 3, boxShadow: 3, borderRadius: 3 }}>
-      {/* <Toaster position="bottom-center" reverseOrder={false} /> */}
       <CardContent>
         <Typography variant="h5" fontWeight="bold" align="center" gutterBottom>
           Mint Your NFT
@@ -111,12 +136,64 @@ const NFTUploader = () => {
             />
           </Box>
 
-          <TextField fullWidth label="Title" variant="outlined" value={title} onChange={(e) => setTitle(e.target.value)} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Description" multiline rows={3} variant="outlined" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ mb: 2 }} />
-          <TextField fullWidth label="Category" variant="outlined" value={category} onChange={(e) => setCategory(e.target.value)} sx={{ mb: 2 }} />
-          <TextField fullWidth type="number" label="Price (ETH)" variant="outlined" value={price} onChange={(e) => setPrice(e.target.value)} inputProps={{ step: "0.0001", min: "0.0001" }} sx={{ mb: 2 }} />
+          <TextField
+            fullWidth
+            label="Title"
+            variant="outlined"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            label="Description"
+            multiline
+            rows={3}
+            variant="outlined"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            sx={{ mb: 2 }}
+          />
 
-          <Button type="submit" fullWidth variant="contained" color="primary" disabled={loading} sx={{ mt: 2 }}>
+          {/* Category Dropdown */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="category-label">Category</InputLabel>
+            <Select
+              labelId="category-label"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              label="Category"
+            >
+              <MenuItem value="" disabled>
+                Select a category
+              </MenuItem>
+              {categories.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            type="number"
+            label="Price (ETH)"
+            variant="outlined"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            inputProps={{ step: "0.0001", min: "0.0001" }}
+            sx={{ mb: 2 }}
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            disabled={loading}
+            sx={{ mt: 2 }}
+          >
             {loading ? <CircularProgress size={24} color="inherit" /> : "Mint NFT"}
           </Button>
         </form>
