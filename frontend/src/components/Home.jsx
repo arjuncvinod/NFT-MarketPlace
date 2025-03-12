@@ -6,6 +6,7 @@ import img1 from "../assets/NFTS/CryptoPunk.png";
 import img2 from "../assets/NFTS/bored-ape.png";
 import img3 from "../assets/NFTS/doodle.jpg";
 import img4 from "../assets/NFTS/Meebit.png";
+import { Link } from "react-router-dom";
 function Home() {
   const [account, setAccount] = useState(null);
 
@@ -41,9 +42,11 @@ function Home() {
           <Button variant="contained" color="primary" onClick={connectWallet}>
             {account ? "Connected: " + account.substring(0, 6) + "..." + account.slice(-4) : "Connect Wallet"}
           </Button>
+          <Link to="/gallery">
           <Button variant="outlined" color="secondary">
             Explore NFTs
           </Button>
+          </Link>
         </div>
       </div>
 
