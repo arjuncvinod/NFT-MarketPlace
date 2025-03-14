@@ -2,10 +2,10 @@ const { ethers } = require("ethers");
 
 const provider = new ethers.JsonRpcProvider("http://127.0.0.1:7545");
 
-const privateKey = "0x1df25f84c6cd7d83768b11a87e9239bf9c4c400440e383c83951509238626fe9";
+const privateKey = "0x1708c6044080f0cecf35629f32f4f65d6023d207339306c64eba8257551423da";
 const wallet = new ethers.Wallet(privateKey, provider);
 
-const numTransactions = 5;  
+const numTransactions = 10;  
 
 async function measureSequentialLatencyAndTPS() {
     console.log(`⏳ Sending ${numTransactions} transactions sequentially...`);
@@ -27,7 +27,7 @@ async function measureSequentialLatencyAndTPS() {
         const latency = Date.now() - startTime;
 
         totalLatency += latency;
-        console.log(`✅ TX ${i + 1}: Latency = ${latency - 3500} ms`);
+        console.log(`✅ TX ${i + 1}: Latency = ${latency - 3700} ms`);
     }
 
     let avgLatency = (totalLatency / numTransactions)-3500; 
